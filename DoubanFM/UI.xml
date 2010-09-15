@@ -1,0 +1,17 @@
+<ui>
+	<popup name="RhythmboxIndicator">
+		<placeholder name="TrackControlPlaceholder" position="top">
+			<menuitem name="Favor" action="Favor"/>
+			<menuitem name="NoFavor" action="NoFavor"/>
+			<separator/>
+			<menuitem name="private" action="private"/>
+			<menuitem name="chinese" action="chinese"/>
+			<menuitem name="english" action="english"/>
+			<menuitem name="gongdong" action="gongdong"/>
+			<menuitem name="70s" action="70s"/>
+			<menuitem name="80s" action="80s"/>
+			<menuitem name="90s" action="90s"/>
+		</placeholder>
+        <separator/>
+	</popup>
+</ui>

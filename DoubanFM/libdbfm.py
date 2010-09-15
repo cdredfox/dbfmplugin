@@ -30,6 +30,9 @@ import httplib
 import json
 import re
 import random
+import logging,logging.handlers
+
+log=logging.getLogger('DoubanFM')
 
 class DoubanRadio():
     def __init__ (self, username, password):
@@ -125,8 +128,8 @@ class DoubanRadio():
         params = self.__get_default_params__('r')
         params['sid'] = sid
         params['aid'] = aid
-
-        self.__remote_fm__(params)
+        log.info(params)
+        result=self.__remote_fm__(params)
         ## ignore the response
 
     def unfav_song(self, sid, aid):
