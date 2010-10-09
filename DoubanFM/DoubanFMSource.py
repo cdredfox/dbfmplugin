@@ -50,8 +50,8 @@ class DoubanFMSource(rb.BrowserSource):
 			#self.__db.set(entry,rhythmdb.PROP_TRACK_NUMBER,'test')
 			self.__db.set(entry,rhythmdb.PROP_GENRE,song.company)
 	def get_Songs(self):	
-			self.doubanfm=libdbfm.DoubanRadio(self.__userName,self.__userPWD)
-			self.doubanfm.set_channel(self.__channel)
+			self.doubanfm=libdbfm.DoubanFM(self.__userName,self.__userPWD)
+			self.doubanfm.channel=self.__channel
 			songs=self.doubanfm.new_playlist()
 			songs=map(self.buildSongObject,songs)
 			return songs

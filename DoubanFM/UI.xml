@@ -3,6 +3,7 @@
 		<placeholder name="TrackControlPlaceholder" position="top">
 			<menuitem name="Favor" action="Favor"/>
 			<menuitem name="NoFavor" action="NoFavor"/>
+			<menuitem name="NeverPlay" action="NeverPlay"/>
 			<separator/>
 			<menuitem name="private" action="private"/>
 			<menuitem name="chinese" action="chinese"/>
