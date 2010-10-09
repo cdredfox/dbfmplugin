@@ -11,6 +11,10 @@ log=logging.getLogger('DoubanFM')
 channels = {_('私人电台'):0, _('国语歌曲'):1, _('英文歌曲'):2, 
 		            _('粤语歌曲'): 6, _('70s'): 3, _('80s'): 4, _('90s'): 5}
 
+class DoubanFMEntryType(rhythmdb.EntryType):
+	def __init__(self):
+		rhythmdb.EntryType.__init__(self,name="DoubanFMEntryType")
+
 class DoubanFM(rb.Plugin):
 	
 	def __init__(self):
@@ -28,15 +32,16 @@ class DoubanFM(rb.Plugin):
 		self._handler = [
 				shell.props.shell_player.connect('playing-song-changed', self._on_playing_song_changed)]
 		self.actionGroup=gtk.ActionGroup("DoubanFMActions")
-		FavorAction=gtk.Action("Favor",_("喜欢"),_("Trash currently playing track"),"user-trash")
-		NoFavorAction=gtk.Action("NoFavor",_("不喜欢"),_("Trash currently playing track"),"user-trash")
-		privateAction=gtk.Action("private",_("私人电台"),_("Trash currently playing track"),"user-trash")
-		chineseAction=gtk.Action("chinese",_("国语歌曲"),_("Trash currently playing track"),"user-trash")
-		englishAction=gtk.Action("english",_("英文歌曲"),_("Trash currently playing track"),"user-trash")
-		gongdongAction=gtk.Action("gongdong",_("粤语歌曲"),_("Trash currently playing track"),"user-trash")
-		seventyAction=gtk.Action("70s",_("七零年代"),_("Trash currently playing track"),"user-trash")
-		eightyAction=gtk.Action("80s",_("八零年代"),_("Trash currently playing track"),"user-trash")
-		ninetyAction=gtk.Action("90s",_("九零年代"),_("Trash currently playing track"),"user-trash")
+		FavorAction=gtk.Action("Favor",_("喜欢"),_("Favor"),"user-trash")
+		NoFavorAction=gtk.Action("NoFavor",_("不喜欢"),_("NoFavor"),"user-trash")
+		neverPlayAction=gtk.Action("NeverPlay",_("不再播放"),_("Never Player"),"user-trash")
+		privateAction=gtk.Action("private",_("私人电台"),_("Private FM"),"user-trash")
+		chineseAction=gtk.Action("chinese",_("国语歌曲"),_("Chinese FM"),"user-trash")
+		englishAction=gtk.Action("english",_("英文歌曲"),_("English FM"),"user-trash")
+		gongdongAction=gtk.Action("gongdong",_("粤语歌曲"),_("GongDong FM"),"user-trash")
+		seventyAction=gtk.Action("70s",_("七零年代"),_("70's Year"),"user-trash")
+		eightyAction=gtk.Action("80s",_("八零年代"),_("80's Year"),"user-trash")
+		ninetyAction=gtk.Action("90s",_("九零年代"),_("90's Year"),"user-trash")
 		FavorAction.connect("activate",self.favor,shell)
 		NoFavorAction.connect("activate",self.noFavor,shell)
 		seventyAction.connect("activate",self.seventyChannel,shell)
@@ -46,6 +51,7 @@ class DoubanFM(rb.Plugin):
 		chineseAction.connect("activate",self.chineseChannel,shell)
 		englishAction.connect("activate",self.englishChannel,shell)
 		gongdongAction.connect("activate",self.gongdongChannel,shell)
+		neverPlayAction.connect("activate",self.neverPlay,shell)
 		self.actionGroup.add_action(FavorAction)
 		self.actionGroup.add_action(NoFavorAction)
 		self.actionGroup.add_action(seventyAction)
@@ -55,11 +61,15 @@ class DoubanFM(rb.Plugin):
 		self.actionGroup.add_action(chineseAction)
 		self.actionGroup.add_action(englishAction)
 		self.actionGroup.add_action(gongdongAction)
-		
+		self.actionGroup.add_action(neverPlayAction)
 		self._setup=Setup.SetupBox()
 		
 		self.db = shell.get_property("db")
-		self.entry_type = self.db.entry_register_type("DoubanFMEntryType")
+		try:
+			self.entry_type = DoubanFMEntryType()
+			self.db.register_entry_type(self.entry_type)
+		except NotImplementedError:
+			self.entry_type = self.db.entry_register_type("DoubanFMEntryType")
 			# allow changes which don't do anything
 		self.entry_type.can_sync_metadata = True
 		self.entry_type.sync_metadata = None
@@ -76,6 +86,10 @@ class DoubanFM(rb.Plugin):
 		self.uiMergeid=self._uiManager.add_ui_from_file(self.find_file("UI.xml"))
 		self._uiManager.ensure_update()
 
+	def neverPlay(self,action,shell):
+		song=self.source.songsMap[self.title.decode("utf-8")]
+		self.source.doubanfm.del_song(song.sid,song.aid)
+		#todo 跳过当前正在播放的歌曲
 			
    	def seventyChannel(self,action,shell):
 		self.source.set_channel(3)
@@ -120,7 +134,7 @@ class DoubanFM(rb.Plugin):
 		log.info("deactivate")
 		uiManager=shell.get_ui_manager()
 		uiManager.remove_ui(self.uiMergeid)
-		self.db.entry_delete_by_type(self.entry_type)
+		#self.db.entry_delete_by_type(self.entry_type)
 		self.db.commit()
 		self.db = None
 		self.entry_type = None
