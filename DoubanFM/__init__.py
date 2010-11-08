@@ -5,11 +5,14 @@ import libdbfm
 from DoubanFMSource import DoubanFMSource
 import logging,logging.handlers,gtk,gtk.glade
 import Setup
+import appindicator
 
 log=logging.getLogger('DoubanFM')
 
-channels = {_('私人电台'):0, _('国语歌曲'):1, _('英文歌曲'):2, 
-		            _('粤语歌曲'): 6, _('70s'): 3, _('80s'): 4, _('90s'): 5}
+
+channels = {'私人电台':'Personalized', '华语歌曲':'Mandarin', '欧美歌曲':'Western', 
+		            '粤语歌曲': 'Cantonese', '70s': '70s', '80s': '80s', '90s': '90s','摇滚音乐':'Rock',
+		            'NewAge':'NewAge','Fork':'Fork'}
 
 class DoubanFMEntryType(rhythmdb.EntryType):
 	def __init__(self):
@@ -32,36 +35,22 @@ class DoubanFM(rb.Plugin):
 		self._handler = [
 				shell.props.shell_player.connect('playing-song-changed', self._on_playing_song_changed)]
 		self.actionGroup=gtk.ActionGroup("DoubanFMActions")
+		FMMenuAction=gtk.Action("FMMenu",_("豆瓣电台"),_("FMMenu"),"user-trash")
 		FavorAction=gtk.Action("Favor",_("喜欢"),_("Favor"),"user-trash")
-		NoFavorAction=gtk.Action("NoFavor",_("不喜欢"),_("NoFavor"),"user-trash")
+		NoFavorAction=gtk.Action("NoFavor",_("取消喜欢"),_("NoFavor"),"user-trash")
 		neverPlayAction=gtk.Action("NeverPlay",_("不再播放"),_("Never Player"),"user-trash")
-		privateAction=gtk.Action("private",_("私人电台"),_("Private FM"),"user-trash")
-		chineseAction=gtk.Action("chinese",_("国语歌曲"),_("Chinese FM"),"user-trash")
-		englishAction=gtk.Action("english",_("英文歌曲"),_("English FM"),"user-trash")
-		gongdongAction=gtk.Action("gongdong",_("粤语歌曲"),_("GongDong FM"),"user-trash")
-		seventyAction=gtk.Action("70s",_("七零年代"),_("70's Year"),"user-trash")
-		eightyAction=gtk.Action("80s",_("八零年代"),_("80's Year"),"user-trash")
-		ninetyAction=gtk.Action("90s",_("九零年代"),_("90's Year"),"user-trash")
-		FavorAction.connect("activate",self.favor,shell)
-		NoFavorAction.connect("activate",self.noFavor,shell)
-		seventyAction.connect("activate",self.seventyChannel,shell)
-		eightyAction.connect("activate",self.eightyChannel,shell)
-		ninetyAction.connect("activate",self.ninetyChannel,shell)
-		privateAction.connect("activate",self.privateChannel,shell)
-		chineseAction.connect("activate",self.chineseChannel,shell)
-		englishAction.connect("activate",self.englishChannel,shell)
-		gongdongAction.connect("activate",self.gongdongChannel,shell)
-		neverPlayAction.connect("activate",self.neverPlay,shell)
+		self.actionGroup.add_action(FMMenuAction)
 		self.actionGroup.add_action(FavorAction)
 		self.actionGroup.add_action(NoFavorAction)
-		self.actionGroup.add_action(seventyAction)
-		self.actionGroup.add_action(eightyAction)
-		self.actionGroup.add_action(ninetyAction)
-		self.actionGroup.add_action(privateAction)
-		self.actionGroup.add_action(chineseAction)
-		self.actionGroup.add_action(englishAction)
-		self.actionGroup.add_action(gongdongAction)
 		self.actionGroup.add_action(neverPlayAction)
+		for channel in channels.iterkeys():
+			sub_item=gtk.MenuItem(channel)
+			channelID=libdbfm.DoubanFMChannels.get(channels.get(channel))
+			action=gtk.Action(channels.get(channel),channel,_("FM"),"user-trash")
+			action.connect("activate",self.changeChannel,shell,channelID)
+			self.actionGroup.add_action(action)
+		
+		
 		self._setup=Setup.SetupBox()
 		
 		self.db = shell.get_property("db")
@@ -73,11 +62,18 @@ class DoubanFM(rb.Plugin):
 			# allow changes which don't do anything
 		self.entry_type.can_sync_metadata = True
 		self.entry_type.sync_metadata = None
+		
+		theme = gtk.icon_theme_get_default()
+	
+		width, height = gtk.icon_size_lookup(gtk.ICON_SIZE_LARGE_TOOLBAR)
+		icon = rb.try_load_icon(theme, "doubanFM", width, 0)
+		
 		group = rb.rb_source_group_get_by_name ("stores")
 		self.source =gobject.new(DoubanFMSource,
 						   shell=shell,
 						   entry_type=self.entry_type,
 						   plugin=self,
+						   icon=icon,
 						   source_group=group)
 		shell.register_entry_type_for_source(self.source, self.entry_type)
 		shell.append_source(self.source, None) 
@@ -85,42 +81,25 @@ class DoubanFM(rb.Plugin):
 		self._uiManager.insert_action_group(self.actionGroup)
 		self.uiMergeid=self._uiManager.add_ui_from_file(self.find_file("UI.xml"))
 		self._uiManager.ensure_update()
+		self.indicator(shell)
 
 	def neverPlay(self,action,shell):
 		song=self.source.songsMap[self.title.decode("utf-8")]
 		self.source.doubanfm.del_song(song.sid,song.aid)
-		#todo 跳过当前正在播放的歌曲
-			
-   	def seventyChannel(self,action,shell):
-		self.source.set_channel(3)
+		shell.props.shell_player.do_next()
+	
+	def changeChannel(self,action,shell,channel):
+		self.source.set_channel(channel)
 		self.source.resetSongs()
-   	def eightyChannel(self,action,shell):
-		self.source.set_channel(4)
-		self.source.resetSongs()
-   	def ninetyChannel(self,action,shell):
-		self.source.set_channel(5)
-		self.source.resetSongs()
-	def privateChannel(self,action,shell):
-		self.source.set_channel(0)
-		self.source.resetSongs()
-   	def chineseChannel(self,action,shell):
-		self.source.set_channel(1)
-		self.source.resetSongs()
-   	def englishChannel(self,action,shell):
-		self.source.set_channel(2)
-		self.source.resetSongs()
-	def gongdongChannel(self,action,shell):
-		self.source.set_channel(6)
-		self.source.resetSongs()
-  
+		
    	def favor(self,action,shell):
-            song=self.source.songsMap[self.title.decode("utf-8")]
-            log.info('SID:'+song.sid+",AID:"+song.aid);
-            self.source.doubanfm.fav_song(song.sid,song.aid)
+   		song=self.source.songsMap[self.title.decode("utf-8")]
+   		log.info('SID:'+song.sid+",AID:"+song.aid);
+   		self.source.doubanfm.fav_song(song.sid,song.aid)
 	def noFavor(self,action,shell):
-            song=self.source.songsMap[self.title.decode("utf-8")]
-            self.source.doubanfm.unfav_song(song.sid,song.aid)
-
+		song=self.source.songsMap[self.title.decode("utf-8")]
+		self.source.doubanfm.unfav_song(song.sid,song.aid)
+		shell.props.shell_player.do_next()
 	def _on_playing_song_changed(self, player, entry):
 		self.title=self._shell.props.db.entry_get(entry, rhythmdb.PROP_TITLE)
 		self.source.__songSize__=self.source.__songSize__-1
@@ -140,4 +119,40 @@ class DoubanFM(rb.Plugin):
 		self.entry_type = None
 		self.source.delete_thyself()
 		self.source = None
-		
+	def indicator(self,shell):
+		self.ind = appindicator.Indicator ("DoubanFM", "indicator-messages", appindicator.CATEGORY_APPLICATION_STATUS)
+		self.ind.set_status (appindicator.STATUS_ACTIVE)
+		self.ind.set_attention_icon ("indicator-messages-new")
+		self.ind.set_icon("doubanFM")
+		# create a menu
+		self.menu=gtk.Menu()
+		item=gtk.MenuItem("喜欢")
+		item.connect("activate",self.favor,shell)
+		item.show()
+		self.menu.append(item)
+		item=gtk.MenuItem("取消喜欢")
+		item.connect("activate",self.noFavor,shell)
+		item.show()
+		self.menu.append(item)
+		item=gtk.MenuItem("不再播放（垃圾桶）")
+		item.connect("activate",self.neverPlay,shell)
+		item.show()
+		self.menu.append(item)
+		#item=gtk.MenuItem("推荐正在播放的歌曲")
+		item=gtk.MenuItem("选择电台")
+		sub_item=gtk.Menu()
+		sub_item.show()
+		item.set_submenu(sub_item)
+		self.buildSubmenu(sub_item,shell)
+		item.show()
+		self.menu.append(item)
+		self.menu.show()
+		self.ind.set_menu(self.menu)
+	
+	def buildSubmenu(self,item,shell):
+		for channel in channels.iterkeys():
+			sub_item=gtk.MenuItem(channel)
+			channelID=libdbfm.DoubanFMChannels.get(channels.get(channel))
+			sub_item.connect("activate",self.changeChannel,shell,channelID)
+			sub_item.show()
+			item.add(sub_item)

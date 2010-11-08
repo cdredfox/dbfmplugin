@@ -56,7 +56,8 @@ class DoubanFMSource(rb.BrowserSource):
 			songs=map(self.buildSongObject,songs)
 			return songs
 	def buildSongObject(self,s):
-			song=Song(s['url'],s['title'],s['artist'],s['albumtitle'],s['company'],s['sid'],s['aid'])
+			log.info(s)
+			song=Song(s['url'],s['title'],s['artist'],s['albumtitle'],s['company'] if 'company' in s else '',s['sid'],s['aid'])
 			return song
 	
 	def resetSongs(self):
@@ -85,6 +86,7 @@ class Song():
 			self.company=company
 			self.sid=sid
 			self.aid=aid
+			#like=like
 
 gobject.type_register(DoubanFMSource)
 

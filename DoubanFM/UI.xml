@@ -1,18 +1,24 @@
 <ui>
-	<popup name="RhythmboxIndicator">
-		<placeholder name="TrackControlPlaceholder" position="top">
-			<menuitem name="Favor" action="Favor"/>
-			<menuitem name="NoFavor" action="NoFavor"/>
-			<menuitem name="NeverPlay" action="NeverPlay"/>
-			<separator/>
-			<menuitem name="private" action="private"/>
-			<menuitem name="chinese" action="chinese"/>
-			<menuitem name="english" action="english"/>
-			<menuitem name="gongdong" action="gongdong"/>
-			<menuitem name="70s" action="70s"/>
-			<menuitem name="80s" action="80s"/>
-			<menuitem name="90s" action="90s"/>
-		</placeholder>
-        <separator/>
-	</popup>
+ <menubar name="MenuBar">
+    <menu name="FMMenu" action="FMMenu">
+      <placeholder name="DoubanFM">
+      <separator/>
+      <menuitem name="Favor" action="Favor"/>
+      <menuitem name="NoFavor" action="NoFavor"/>
+      <menuitem name="NeverPlay" action="NeverPlay"/>
+      <separator/>
+      <menuitem name="Personalized" action="Personalized"/>
+      <menuitem name="Mandarin" action="Mandarin"/>
+      <menuitem name="Western" action="Western"/>
+      <menuitem name="Cantonese" action="Cantonese"/>
+      <menuitem name="70s" action="70s"/>
+      <menuitem name="80s" action="80s"/>
+      <menuitem name="90s" action="90s"/>
+      <menuitem name="Rock" action="Rock"/>
+      <menuitem name="NewAge" action="NewAge"/>
+      <menuitem name="Fork" action="Fork"/>
+    <separator/>
+      </placeholder>
+    </menu>
+  </menubar>
 </ui>
