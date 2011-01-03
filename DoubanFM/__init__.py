@@ -4,15 +4,14 @@ import rhythmdb, rb,gobject
 import libdbfm
 from DoubanFMSource import DoubanFMSource
 import logging,logging.handlers,gtk,gtk.glade
-import Setup
-import appindicator
+import Setup,gconf
+import DoubanIndicator
 
 log=logging.getLogger('DoubanFM')
 
-
 channels = {'私人电台':'Personalized', '华语歌曲':'Mandarin', '欧美歌曲':'Western', 
 		            '粤语歌曲': 'Cantonese', '70s': '70s', '80s': '80s', '90s': '90s','摇滚音乐':'Rock',
-		            'NewAge':'NewAge','Fork':'Fork'}
+		            'NewAge':'NewAge','Fork':'Fork','电影原声频道(OST)':'OST'}
 
 class DoubanFMEntryType(rhythmdb.EntryType):
 	def __init__(self):
@@ -81,7 +80,9 @@ class DoubanFM(rb.Plugin):
 		self._uiManager.insert_action_group(self.actionGroup)
 		self.uiMergeid=self._uiManager.add_ui_from_file(self.find_file("UI.xml"))
 		self._uiManager.ensure_update()
-		self.indicator(shell)
+		if gconf.client_get_default().get_without_default(Setup.ENABLE_INDICATOR).get_bool():
+			doubanIndicator=DoubanIndicator.DoubanIndicator()
+			doubanIndicator.indicator(shell,self)
 
 	def neverPlay(self,action,shell):
 		song=self.source.songsMap[self.title.decode("utf-8")]
@@ -102,6 +103,8 @@ class DoubanFM(rb.Plugin):
 		shell.props.shell_player.do_next()
 	def _on_playing_song_changed(self, player, entry):
 		self.title=self._shell.props.db.entry_get(entry, rhythmdb.PROP_TITLE)
+		self.currentSong=self.source.songsMap[self.title.decode("utf-8")]
+		log.info(self.currentSong.title)
 		self.source.__songSize__=self.source.__songSize__-1
 		if self.source.__songSize__<1:
 			self.source.resetSongs()		
@@ -119,35 +122,7 @@ class DoubanFM(rb.Plugin):
 		self.entry_type = None
 		self.source.delete_thyself()
 		self.source = None
-	def indicator(self,shell):
-		self.ind = appindicator.Indicator ("DoubanFM", "indicator-messages", appindicator.CATEGORY_APPLICATION_STATUS)
-		self.ind.set_status (appindicator.STATUS_ACTIVE)
-		self.ind.set_attention_icon ("indicator-messages-new")
-		self.ind.set_icon("doubanFM")
-		# create a menu
-		self.menu=gtk.Menu()
-		item=gtk.MenuItem("喜欢")
-		item.connect("activate",self.favor,shell)
-		item.show()
-		self.menu.append(item)
-		item=gtk.MenuItem("取消喜欢")
-		item.connect("activate",self.noFavor,shell)
-		item.show()
-		self.menu.append(item)
-		item=gtk.MenuItem("不再播放（垃圾桶）")
-		item.connect("activate",self.neverPlay,shell)
-		item.show()
-		self.menu.append(item)
-		#item=gtk.MenuItem("推荐正在播放的歌曲")
-		item=gtk.MenuItem("选择电台")
-		sub_item=gtk.Menu()
-		sub_item.show()
-		item.set_submenu(sub_item)
-		self.buildSubmenu(sub_item,shell)
-		item.show()
-		self.menu.append(item)
-		self.menu.show()
-		self.ind.set_menu(self.menu)
+	
 	
 	def buildSubmenu(self,item,shell):
 		for channel in channels.iterkeys():

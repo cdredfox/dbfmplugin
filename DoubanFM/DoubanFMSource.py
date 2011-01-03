@@ -57,7 +57,7 @@ class DoubanFMSource(rb.BrowserSource):
 			return songs
 	def buildSongObject(self,s):
 			log.info(s)
-			song=Song(s['url'],s['title'],s['artist'],s['albumtitle'],s['company'] if 'company' in s else '',s['sid'],s['aid'])
+			song=Song(s['url'],s['title'],s['artist'],s['albumtitle'],s['company'] if 'company' in s else '',s['sid'],s['aid'],s['like'])
 			return song
 	
 	def resetSongs(self):
@@ -78,7 +78,7 @@ class DoubanFMSource(rb.BrowserSource):
  			log.info(self.__db.entry_get(entry, rhythmdb.PROP_TITLE))
 		 	self.__db.entry_delete(entry);
 class Song():
-		def __init__(self,uri,title,artist,album,company,sid,aid):
+		def __init__(self,uri,title,artist,album,company,sid,aid,like):
 			self.uri=uri
 			self.title=title
 			self.artist=artist
@@ -86,7 +86,7 @@ class Song():
 			self.company=company
 			self.sid=sid
 			self.aid=aid
-			#like=like
+			self.like=like
 
 gobject.type_register(DoubanFMSource)
 

@@ -17,6 +17,7 @@
       <menuitem name="Rock" action="Rock"/>
       <menuitem name="NewAge" action="NewAge"/>
       <menuitem name="Fork" action="Fork"/>
+      <menuitem name="OST" action="OST"/>
     <separator/>
       </placeholder>
     </menu>
