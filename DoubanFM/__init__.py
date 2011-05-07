@@ -6,17 +6,14 @@ from DoubanFMSource import DoubanFMSource
 import logging,logging.handlers,gtk,gtk.glade
 import Setup,gconf
 import DoubanIndicator
+import UI
 
 log=logging.getLogger('DoubanFM')
 
-channels = {'私人电台':'Personalized', '华语歌曲':'Mandarin', '欧美歌曲':'Western', 
-		            '粤语歌曲': 'Cantonese', '70s': '70s', '80s': '80s', '90s': '90s','摇滚音乐':'Rock',
-		            'NewAge':'NewAge','Fork':'Fork','电影原声频道(OST)':'OST'}
 
 class DoubanFMEntryType(rhythmdb.EntryType):
 	def __init__(self):
 		rhythmdb.EntryType.__init__(self,name="DoubanFMEntryType")
-
 class DoubanFM(rb.Plugin):
 	
 	def __init__(self):
@@ -33,23 +30,8 @@ class DoubanFM(rb.Plugin):
 		self._shell=shell
 		self._handler = [
 				shell.props.shell_player.connect('playing-song-changed', self._on_playing_song_changed)]
-		self.actionGroup=gtk.ActionGroup("DoubanFMActions")
-		FMMenuAction=gtk.Action("FMMenu",_("豆瓣电台"),_("FMMenu"),"user-trash")
-		FavorAction=gtk.Action("Favor",_("喜欢"),_("Favor"),"user-trash")
-		NoFavorAction=gtk.Action("NoFavor",_("取消喜欢"),_("NoFavor"),"user-trash")
-		neverPlayAction=gtk.Action("NeverPlay",_("不再播放"),_("Never Player"),"user-trash")
-		self.actionGroup.add_action(FMMenuAction)
-		self.actionGroup.add_action(FavorAction)
-		self.actionGroup.add_action(NoFavorAction)
-		self.actionGroup.add_action(neverPlayAction)
-		for channel in channels.iterkeys():
-			sub_item=gtk.MenuItem(channel)
-			channelID=libdbfm.DoubanFMChannels.get(channels.get(channel))
-			action=gtk.Action(channels.get(channel),channel,_("FM"),"user-trash")
-			action.connect("activate",self.changeChannel,shell,channelID)
-			self.actionGroup.add_action(action)
-		
-		
+		self._ui=UI.UI();
+		self.build_actions()
 		self._setup=Setup.SetupBox()
 		
 		self.db = shell.get_property("db")
@@ -67,18 +49,22 @@ class DoubanFM(rb.Plugin):
 		width, height = gtk.icon_size_lookup(gtk.ICON_SIZE_LARGE_TOOLBAR)
 		icon = rb.try_load_icon(theme, "doubanFM", width, 0)
 		
-		group = rb.rb_source_group_get_by_name ("stores")
+		#group = rb.rb_source_group_get_by_name ("stores")
+		group = rb.rb_display_page_group_get_by_id ("stores")
 		self.source =gobject.new(DoubanFMSource,
 						   shell=shell,
 						   entry_type=self.entry_type,
-						   plugin=self,
-						   icon=icon,
-						   source_group=group)
+						   pixbuf=icon,
+						   plugin=self)				   
 		shell.register_entry_type_for_source(self.source, self.entry_type)
-		shell.append_source(self.source, None) 
+		shell.append_display_page(self.source, group)
+		#shell.append_source(self.source, None) 
 		self._uiManager=shell.props.ui_manager
 		self._uiManager.insert_action_group(self.actionGroup)
-		self.uiMergeid=self._uiManager.add_ui_from_file(self.find_file("UI.xml"))
+		# self.uiMergeid=self._uiManager.add_ui_from_file(self.find_file("UI.xml"))
+		#生成界面
+		log.info(self._ui.buildUIString())
+		self.uiMergeid=self._uiManager.add_ui_from_string(self._ui.buildUIString())
 		self._uiManager.ensure_update()
 		if gconf.client_get_default().get_without_default(Setup.ENABLE_INDICATOR).get_bool():
 			doubanIndicator=DoubanIndicator.DoubanIndicator()
@@ -123,11 +109,28 @@ class DoubanFM(rb.Plugin):
 		self.source.delete_thyself()
 		self.source = None
 	
-	
 	def buildSubmenu(self,item,shell):
-		for channel in channels.iterkeys():
-			sub_item=gtk.MenuItem(channel)
-			channelID=libdbfm.DoubanFMChannels.get(channels.get(channel))
-			sub_item.connect("activate",self.changeChannel,shell,channelID)
+		channels=self._ui.load_channels()
+		for channel in channels['channels']:
+			sub_item=gtk.MenuItem(channel['name'])
+			sub_item.connect("activate",self.changeChannel,self._shell,channel['channel_id'])
 			sub_item.show()
 			item.add(sub_item)
+	
+	def build_actions(self):
+		self.actionGroup=gtk.ActionGroup("DoubanFMActions")
+		FMMenuAction=gtk.Action("FMMenu",_("豆瓣电台"),_("FMMenu"),"user-trash")
+		FavorAction=gtk.Action("Favor",_("喜欢"),_("Favor"),"user-trash")
+		NoFavorAction=gtk.Action("NoFavor",_("取消喜欢"),_("NoFavor"),"user-trash")
+		neverPlayAction=gtk.Action("NeverPlay",_("不再播放"),_("Never Player"),"user-trash")
+		self.actionGroup.add_action(FMMenuAction)
+		self.actionGroup.add_action(FavorAction)
+		self.actionGroup.add_action(NoFavorAction)
+		self.actionGroup.add_action(neverPlayAction)
+		
+		channels=self._ui.load_channels()
+		for channel in channels['channels']:
+			sub_item=gtk.MenuItem(channel['name'])
+			action=gtk.Action('-'.join(channel['name_en'].split("&")),channel['name'],("FM"),"user-trash")
+			action.connect("activate",self.changeChannel,self._shell,channel['channel_id'])
+			self.actionGroup.add_action(action)		
